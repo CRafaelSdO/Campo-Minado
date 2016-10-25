@@ -8,7 +8,7 @@ Jogo campo minado implementado na linguagem C usando a biblioteca grafica Allegr
  1. Use o seguinte comando (depois faça o passo anterior):
    * ``gcc Campo_Minado.c -o Campo_Minado -lallegro -lallegro_dialog -lallegro_ttf -lallegro_font -lallegro_primitives -lallegro_image -lallegro_audio -lallegro_acodec``
 * Caso queira compilar em alguma IDE e precisa de parâmetros:
- 1. -lallegro -lallegro_dialog -lallegro_ttf -lallegro_font -lallegro_primitives -lallegro_image -lallegro_audio -lallegro_acodec
+ 1. ``-lallegro -lallegro_dialog -lallegro_ttf -lallegro_font -lallegro_primitives -lallegro_image -lallegro_audio -lallegro_acodec``
 * [Veja o video da Gameplay] (https://youtu.be/6lzJ9R5j8Xw "Gameplay video")
 * Caso o jogo nao esteja igual ao do video, provavelmente é um problema de incompatibilidade com o S.O., se possivel executar o jogo no Windows.
 
