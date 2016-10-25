@@ -1,6 +1,5 @@
 FILE *ranking_data;
 FILE *ranking_nome;
-
 //struct do tipo de dado score
 struct score{
 	char nome[4];
@@ -10,6 +9,7 @@ struct score{
 
 typedef struct score score;//definiÃ§Ã£o do tipo score
 
+//Declaração das funções
 void addToRanking(score scoreToAdd, score *currentRanking, int n);
 void enumera(score *currentRanking);
 void getRanking(score *ranking, char nomeArquivo[100]);
@@ -104,7 +104,8 @@ void changeRankingData(score scoreToAdd)
 	fclose(ranking_data);
 	montaNome(archive);
 }
-
+/*Monta os arquivos com os nomes ordenados
+pronto para busca binária*/
 void montaNome(char archive[100])
 {
 	score ranking[100];
@@ -124,7 +125,7 @@ void montaNome(char archive[100])
 	}
 	fclose(ranking_nome);
 }
-
+//Ordena por nome
 void ordenaNome(score *rank)
 {
 	int o, b;
@@ -142,11 +143,10 @@ void ordenaNome(score *rank)
 		}
 	}
 }
-
+//Busca Binária, procurando pelo nome e retornando a posição no ranking
 int buscaBinaria(int inicio, int fim, char nome[4], score *array)
 {
 	int meio = (inicio + fim) / 2;
-	printf("%d %d\n", inicio, fim);
 	if (strcmp(array[meio].nome, nome) == 0)
 		return(array[meio].posicao);
 	else if (fim - inicio <= 1)

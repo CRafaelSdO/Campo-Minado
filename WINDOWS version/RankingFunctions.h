@@ -95,7 +95,8 @@ void changeRankingData(score scoreToAdd)
 	fclose(ranking_data);
 	montaNome(archive);
 }
-
+/*Monta os arquivos com os nomes ordenados
+pronto para busca binária*/
 void montaNome(char archive[100])
 {
 	score ranking[100];
@@ -115,7 +116,7 @@ void montaNome(char archive[100])
 	}
 	fclose(ranking_nome);
 }
-
+//Ordena por nome
 void ordenaNome(score *rank)
 {
 	int o, b;
@@ -133,7 +134,7 @@ void ordenaNome(score *rank)
 		}
 	}
 }
-
+//Busca Binária, procurando pelo nome e retornando a posição no ranking
 int buscaBinaria(int inicio, int fim, char nome[4], score *array)
 {
 	int meio = (inicio + fim) / 2;

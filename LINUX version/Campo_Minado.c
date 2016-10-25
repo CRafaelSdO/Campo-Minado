@@ -16,8 +16,10 @@
 
 typedef struct ALLEGRO_MOUSE_STATE ALLEGRO_MOUSE_STATE;
 
-const int LARGURA_TELA = 1280;
-const int ALTURA_TELA = 720;
+//Constantes de tela
+const int LARGURA_TELA = 1280;//Largura
+const int ALTURA_TELA = 720;//Altura
+
 int largura, altura, bombas, compensacao, flags; char stringFlags[100];
 int **tabuleiro;
 char **tabuleiro2;
@@ -37,6 +39,8 @@ ALLEGRO_MOUSE_STATE state;
 
 //Declara BITMAPS
 ALLEGRO_BITMAP *botao_sair = NULL;
+
+//////////////////////SPRITES DAS CASAS////////////////////////////////////////
 ALLEGRO_BITMAP *imagem = NULL, *vazio = NULL, *um = NULL, *dois = NULL, *tres = NULL;
 ALLEGRO_BITMAP *quatro = NULL, *cinco = NULL, *seis = NULL, *sete = NULL, *oito = NULL;
 ALLEGRO_BITMAP *bomba = NULL, *flag = NULL;
@@ -46,25 +50,128 @@ ALLEGRO_FONT *font;
 ALLEGRO_COLOR branco;
 
 //Declara sons
-ALLEGRO_SAMPLE *musica = NULL;
-ALLEGRO_SAMPLE *clique_jogo = NULL;
-ALLEGRO_SAMPLE *clique_menu = NULL;
-ALLEGRO_SAMPLE *explosao = NULL;
-ALLEGRO_SAMPLE *floodfill_som = NULL;
-ALLEGRO_SAMPLE *inicio = NULL;
-ALLEGRO_SAMPLE *set_flag = NULL;
-ALLEGRO_SAMPLE *take_flag = NULL;
-ALLEGRO_SAMPLE *game_over = NULL;
-ALLEGRO_SAMPLE *victory = NULL;
-ALLEGRO_SAMPLE_ID *id_music = NULL;
-ALLEGRO_SAMPLE_ID *id_game_over = NULL;
-ALLEGRO_SAMPLE_ID *id_victory = NULL;
+ALLEGRO_SAMPLE *musica = NULL;//Musica de fundo
+ALLEGRO_SAMPLE *clique_jogo = NULL;//Som de clique no menu
+ALLEGRO_SAMPLE *clique_menu = NULL;//Som de clique durante a gameplay
+ALLEGRO_SAMPLE *explosao = NULL;//Som de explosão
+ALLEGRO_SAMPLE *floodfill_som = NULL;//Som usado no floodfield
+ALLEGRO_SAMPLE *inicio = NULL;//Som de inicio
+ALLEGRO_SAMPLE *set_flag = NULL;//Som de colocar bandeira
+ALLEGRO_SAMPLE *take_flag = NULL;//Som de tirar bandeira
+ALLEGRO_SAMPLE *game_over = NULL;//Som de fim de jogo
+ALLEGRO_SAMPLE *victory = NULL;//som de vitória
+ALLEGRO_SAMPLE_ID *id_music = NULL;//ID da musica de fundo
+ALLEGRO_SAMPLE_ID *id_game_over = NULL;//ID do som de fim de jogo
+ALLEGRO_SAMPLE_ID *id_victory = NULL;//ID do som de vitória
 
 //Declara a janela
-ALLEGRO_DISPLAY *janela = NULL;
+ALLEGRO_DISPLAY *janela = 0;
 
 int music = 0;
 int menu = 1;
+
+
+/////////////////EXPLOSAO//////////////////////////////////////////////
+const int NUM_EXPLOSIONS = 5;
+
+struct Explosion {
+
+	int x;
+	int y;
+	bool live;
+
+	int maxFrame;
+	int curFrame;
+	int frameCount;
+	int frameDelay;
+	int frameWidth;
+	int frameHeight;
+	int animationColumns;
+	int animationDirection;
+
+	ALLEGRO_BITMAP *image;
+
+};
+
+//Inicia a animação das primeiras explosões
+void InitExplosions(struct Explosion explosions[], int size, ALLEGRO_BITMAP *image)
+{
+	int i;
+	for(i = 0; i < size; i++)
+	{
+		explosions[i].live = false;
+
+		explosions[i].maxFrame = 31;
+		explosions[i].curFrame = 0;
+		explosions[i].frameCount = 0;
+		explosions[i].frameDelay = 1;
+		explosions[i].frameWidth = 104;
+		explosions[i].frameHeight = 100;
+		explosions[i].animationColumns = 9;
+		explosions[i].animationDirection = 1;
+
+		explosions[i].image = image;
+	}
+}
+
+//Desenha as explosões
+void DrawExplosions(struct Explosion explosions[], int size)
+{
+	int i;
+	for(i = 0; i < size; i++)
+	{
+		if(explosions[i].live)
+		{
+			int fx = (explosions[i].curFrame % explosions[i].animationColumns) * explosions[i].frameWidth;
+			int fy =  (explosions[i].curFrame / explosions[i].animationColumns) * explosions[i].frameHeight;
+
+			al_draw_bitmap_region(explosions[i].image, fx, fy, explosions[i].frameWidth,
+				explosions[i].frameHeight, explosions[i].x - explosions[i].frameWidth /2,
+				explosions[i].y - explosions[i].frameHeight / 2, 0);
+		}
+	}
+}
+
+//Inicia as explosões
+void StartExplosions(struct Explosion explosions[], int size, int x, int y)
+{
+	int i;
+	for(i = 0; i < size; i++)
+	{
+		if(!explosions[i].live)
+		{
+			explosions[i].live = true;
+			explosions[i].x = x;
+			explosions[i].y = y;
+			break;
+		}
+	}
+}
+
+//Atualiza a sprite da explosão
+void UpdateExplosions(struct Explosion explosions[], int size)
+{
+	int i;
+	for(i = 0; i < size; i++)
+	{
+		if(explosions[i].live)
+		{
+			if(++explosions[i].frameCount >= explosions[i].frameDelay)
+			{
+				explosions[i].curFrame += explosions[i].animationDirection;
+				if(explosions[i].curFrame >= explosions[i].maxFrame)
+				{
+					explosions[i].curFrame = 0;
+					explosions[i].live = false;
+				}
+
+				explosions[i].frameCount = 0;
+			}
+		}
+	}
+}
+
+/////////////NOSAS HEADERS////////////////////////////////////////////////////////
 
 # include "RankingFunctions.h"
 score array[100];
@@ -80,38 +187,40 @@ int main(void)
 {
 	ALLEGRO_BITMAP *botao_sair = NULL, *area_jogar = 0, *area_informacao = 0, *area_ver_recordes = 0, *area_creditos = 0, *area_sair_do_jogo = 0, *area_menu_fundo = NULL;
 
-// Flag que condicionar� nosso looping
+  // Flag que condicionar� nosso looping
 	int sair = 0;
 	int creditos = 0;
 	int escolher = 0;
 
-//Inicia o Allegro
+  //Inicia o Allegro
 	if (!al_init())
 	{
 		fprintf(stderr, "Falha ao inicializar a Allegro.\n");
 		return -1;
 	}
 
-//Cria a janela
+  //Cria a janela
 	janela = al_create_display(LARGURA_TELA, ALTURA_TELA);
+
 	if (!janela)
 	{
 		fprintf(stderr, "Falha ao criar janela.\n");
 		return -1;
 	}
 
-// Configura o título da janela
+  // Configura o título da janela
 	al_set_window_title(janela, "Campo Minado");
 
-// Torna apto o uso de mouse na aplição
+  // Torna apto o uso de mouse na aplição
 	if (!al_install_mouse())
 	{
 		fprintf(stderr, "Falha ao inicializar o mouse.\n");
 		al_destroy_display(janela);
 		return -1;
 	}
+	fila_eventos = al_create_event_queue();
 
-// Atribui o cursor padrão do sistema para ser usado
+  // Atribui o cursor padrão do sistema para ser usado
 	if (!al_set_system_mouse_cursor(janela, ALLEGRO_SYSTEM_MOUSE_CURSOR_DEFAULT))
 	{
 		fprintf(stderr, "Falha ao atribuir ponteiro do mouse.\n");
@@ -119,15 +228,15 @@ int main(void)
 		return -1;
 	}
 
-// Alocamos os retângulos da tela
-	area_menu_fundo = al_create_bitmap(360, 360);
-	area_jogar =al_create_bitmap(360, 72);
-	area_informacao = al_create_bitmap(360, 72);
-	area_ver_recordes = al_create_bitmap(360, 72);
-	area_creditos = al_create_bitmap(360, 72);
-	area_sair_do_jogo = al_create_bitmap(360, 72);
+  // Alocamos os bitmaps que serão desenhados na tela
+	area_menu_fundo =   al_create_bitmap(360, 360);//Criação do bitmap do fundo do menu
+	area_jogar =        al_create_bitmap(360, 72);//Criação do bitmap de fundo da opção jogar
+	area_informacao =   al_create_bitmap(360, 72);//Criação do bitmap de fundo da opção informações
+	area_ver_recordes = al_create_bitmap(360, 72);//Criação do bitmap de fundo da opção ver recordes
+	area_creditos =     al_create_bitmap(360, 72);//Criação do bitmap de fundo da opção creditos
+	area_sair_do_jogo = al_create_bitmap(360, 72);//Criação do bitmap de fundo da opção sair do jogo
 
-// Alocamos o botão para fechar a aplicação
+  // Alocamos o bitmap da area do botão para fechar a aplicação
 	botao_sair = al_create_bitmap(100, 50);
 	if (!botao_sair)
 	{
@@ -136,86 +245,98 @@ int main(void)
 		return -1;
 	}
 
-// Flag indicando se o mouse est� sobre cada op�ao do menu
-	int na_area_jogar = 0;
-	int na_area_informacao = 0;
-	int na_area_ver_recordes = 0;
-	int na_area_creditos = 0;
-	int na_area_sair_do_jogo = 0;
+  // Flags indicando se o mouse está sobre alguma das opção do menu
+	int na_area_jogar = 0;//Diz se o mouse esta sobre a opção jogar
+	int na_area_informacao = 0;//Diz se o mouse esta sobre a opção informação
+	int na_area_ver_recordes = 0;//Diz se o mouse esta sobre a opção ver recordes
+	int na_area_creditos = 0;//Diz se o mouse esta sobre a opção creditos
+	int na_area_sair_do_jogo = 0;//Diz se o mouse esta sobre a opção sair do jogo
 
-//Inicializando
+  //Inicializando
 	al_init_image_addon();
 	ALLEGRO_BITMAP *backgr;
 	ALLEGRO_BITMAP *bomba;
+
+	//Carregando arquivos de imagem do background
 	backgr = al_load_bitmap("imgs/background.png");
 	bomba = al_load_bitmap("imgs/bombaBG.png");
 
-//Carregando fontes
+  //Carregando fontes
 	al_init_font_addon();
 	al_init_ttf_addon();
+	//Carregando arquivos de fonte
 	ALLEGRO_FONT *font1 = al_load_ttf_font("fonts/retro3d.ttf",150,0),*font2 = al_load_ttf_font("fonts/retro.ttf",35,0);
 
-//Carregando cores
+  //Carregando cores
 	al_init_primitives_addon();
+	//Iniciando cada cor que sera usada
 	ALLEGRO_COLOR Azul = al_map_rgb(44,117,255);
 	ALLEGRO_COLOR VermelhoClaro = al_map_rgb(250,28,3);
 	ALLEGRO_COLOR Preto = al_map_rgb(0, 0, 0);
 	ALLEGRO_COLOR Cinza = al_map_rgb(172, 166, 166);
 	ALLEGRO_COLOR Branco1, Branco2, Branco3, Branco4, Branco5;
 
-//Carregando sons
+	//Declarando a variável para eventos
+	ALLEGRO_EVENT evento;
+  //Carregando sons
 	al_install_audio();
 	al_init_acodec_addon();
-	al_reserve_samples(3);
-	id_music = malloc(sizeof(ALLEGRO_SAMPLE_ID));
-	musica = al_load_sample("songs/background.wav");
-	clique_jogo = al_load_sample("songs/clique.wav");
-	al_play_sample(musica, 0.7, 0, 1, ALLEGRO_PLAYMODE_LOOP, id_music);
+	al_reserve_samples(10);//Reservando canais de audio no mixer principal
+	id_music = malloc(sizeof(ALLEGRO_SAMPLE_ID));//Variável de ID para a musica de fundo
+
+	//Carregando arquivos de som
+	musica = al_load_sample("songs/background.wav");//Musica de fundo
+	clique_jogo = al_load_sample("songs/clique.wav");//Som de clique
+	al_play_sample(musica, 0.7, 0, 1, ALLEGRO_PLAYMODE_LOOP, id_music);//Tocando musica de fundo
 
 	al_draw_filled_rectangle( 25 , 100, 300, 600, al_map_rgba_f(1, 1, 1, 0.5));
 
+	//Variáveis que controlam onde ficam os desenhos
 	float altura = 2.1;
 	float distancia = 72;
 	int play = 0;
 
 	while (true)
 	{
+		//Toca a musica de fundo
 		if(music == 1)
 		{
 			al_play_sample(musica, 0.7, 0, 1, ALLEGRO_PLAYMODE_LOOP, id_music);
 			music = 0;
 		}
-		fila_eventos = al_create_event_queue();
 
-// Dizemos que vamos tratar os eventos vindos do mouse
+    // Dizemos que vamos tratar os eventos vindos do mouse
 		al_register_event_source(fila_eventos, al_get_mouse_event_source());
 
-		ALLEGRO_EVENT evento;
-		al_wait_for_event(fila_eventos, &evento);
-
-// Limpamos a tela
+    // Limpamos a tela
 		al_clear_to_color(al_map_rgb(0, 0, 0));
+
+		//Desenhamos o backgound
 		al_draw_bitmap(backgr, 0, 0, 0);
 		al_draw_bitmap(bomba, LARGURA_TELA / 2 - 256, ALTURA_TELA / 2 - 256, 0);
 
-// Desenhamos os retângulos na tela
-		al_draw_bitmap(area_menu_fundo, LARGURA_TELA / 2.8, ALTURA_TELA / 2.2 , 0.5);
-		al_draw_bitmap(area_jogar, LARGURA_TELA/2.8, ALTURA_TELA / 2.2 , 0.5);
-		al_draw_bitmap(area_informacao, LARGURA_TELA / 2.8, ALTURA_TELA / 2.2 + distancia , 0.5);
-		al_draw_bitmap(area_ver_recordes, LARGURA_TELA / 2.8, ALTURA_TELA / 2.2 + distancia*2, 0.5);
-		al_draw_bitmap(area_creditos, LARGURA_TELA / 2.8, ALTURA_TELA / 2.2 + distancia*3 , 0.5);
-		al_draw_bitmap(area_sair_do_jogo, LARGURA_TELA / 2.8, ALTURA_TELA / 2.2 + distancia*4 , 0.5);
+    // Desenhamos os bitmaps das opções do menu
+		al_draw_bitmap(area_menu_fundo, LARGURA_TELA / 2.8  , ALTURA_TELA / 2.2 , 0.5);//Desenha o bitmap do fundo do menu
+		al_draw_bitmap(area_jogar, LARGURA_TELA/2.8  , ALTURA_TELA / 2.2 , 0.5);//Desenha o bitmap do fundo da opção jogar
+		al_draw_bitmap(area_informacao, LARGURA_TELA / 2.8  , ALTURA_TELA / 2.2 + distancia , 0.5);//Desenha o bitmap do fundo da opção informação
+		al_draw_bitmap(area_ver_recordes, LARGURA_TELA / 2.8  , ALTURA_TELA / 2.2 + distancia*2, 0.5);//Desenha o bitmap do fundo da opção ver reordes
+		al_draw_bitmap(area_creditos, LARGURA_TELA / 2.8  , ALTURA_TELA / 2.2 + distancia*3 , 0.5);//Desenha o bitmap do fundo da opção creditos
+		al_draw_bitmap(area_sair_do_jogo, LARGURA_TELA / 2.8  , ALTURA_TELA / 2.2 + distancia*4 , 0.5);//Desenha o bitmap do fundo da opção sair do jogo
 
-		al_draw_text(font1,al_map_rgb(255,229,32),LARGURA_TELA/2,ALTURA_TELA/4 - 100,ALLEGRO_ALIGN_CENTRE,"CAMPO MINADO");
+		//Desenha o texto da opções do menu
+		al_draw_text(font1,al_map_rgb(255,229,32),LARGURA_TELA/2,ALTURA_TELA/4 - 100,ALLEGRO_ALIGN_CENTRE,"CAMPO MINADO");//Desenha o texto do titulo
+		//Desenha restangulos que fazem o contorno do menu
 		al_draw_rectangle(LARGURA_TELA/2 - 180, ALTURA_TELA/altura - 15, LARGURA_TELA/2 + 180, ALTURA_TELA/altura + distancia*5 - 10, al_map_rgb(255, 255, 255), 6.0);
 		al_draw_rectangle(LARGURA_TELA/2 - 186, ALTURA_TELA/altura - 21, LARGURA_TELA/2 + 186, ALTURA_TELA/altura + distancia*5 - 4, al_map_rgb(0, 0, 0), 6.0);
-		al_draw_text(font2, Branco1, LARGURA_TELA/2, ALTURA_TELA/altura + 5, ALLEGRO_ALIGN_CENTRE, "JOGAR");
-		al_draw_text(font2, Branco2, LARGURA_TELA/2, ALTURA_TELA/altura + distancia, ALLEGRO_ALIGN_CENTRE, "INFORMACOES");
-		al_draw_text(font2, Branco3, LARGURA_TELA/2, ALTURA_TELA/altura + distancia*2, ALLEGRO_ALIGN_CENTRE, "VER RECORDES");
-		al_draw_text(font2, Branco4, LARGURA_TELA/2, ALTURA_TELA/altura + distancia*3, ALLEGRO_ALIGN_CENTRE, "CREDITOS");
-		al_draw_text(font2, Branco5, LARGURA_TELA/2, ALTURA_TELA/altura + distancia*4, ALLEGRO_ALIGN_CENTRE, "SAIR DO JOGO");
+		//Desenha o texto das opções do menu
+		al_draw_text(font2, Branco1, LARGURA_TELA/2, ALTURA_TELA/altura + 5, ALLEGRO_ALIGN_CENTER, "JOGAR");//Desenha o texto da opção jogar
+		al_draw_text(font2, Branco2, LARGURA_TELA/2, ALTURA_TELA/altura + distancia, ALLEGRO_ALIGN_CENTER, "INFORMACOES");//Desenha o texto da opção  informações
+		al_draw_text(font2, Branco3, LARGURA_TELA/2, ALTURA_TELA/altura + distancia*2, ALLEGRO_ALIGN_CENTER, "VER RECORDES");//Desenha o texto da opção ver recordes
+		al_draw_text(font2, Branco4, LARGURA_TELA/2, ALTURA_TELA/altura + distancia*3, ALLEGRO_ALIGN_CENTER, "CREDITOS");//Desenha o texto da opção creditos
+		al_draw_text(font2, Branco5, LARGURA_TELA/2, ALTURA_TELA/altura + distancia*4, ALLEGRO_ALIGN_CENTER, "SAIR DO JOGO");//Desenha o texto da opção sair do jogo
 		al_flip_display();
 
+		//Muda a cor da area onde esta a opção jogar dependendo se a flag na_area_jogar está "levantada" ou não
 		al_set_target_bitmap(area_jogar);
 		if (!na_area_jogar)
 		{
@@ -228,6 +349,7 @@ int main(void)
 			Branco1 = al_map_rgb(255,229,32);
 		}
 
+		//Muda a cor da area onde esta a opção informação dependendo se a flag na_area_informacao está "levantada" ou não
 		al_set_target_bitmap(area_informacao);
 		if (!na_area_informacao)
 		{
@@ -240,6 +362,7 @@ int main(void)
 			Branco2 = al_map_rgb(255,229,32);
 		}
 
+		//Muda a cor da area onde esta a opção recordes dependendo se a flag area_informacao está "levantada" ou não
 		al_set_target_bitmap(area_ver_recordes);
 		if (!na_area_ver_recordes)
 		{
@@ -252,6 +375,7 @@ int main(void)
 			Branco3 = al_map_rgb(255,229,32);
 		}
 
+		//Muda a cor da area onde esta a opção creditos dependendo se a flag está "levantada" ou não
 		al_set_target_bitmap(area_creditos);
 		if (!na_area_creditos)
 		{
@@ -264,6 +388,7 @@ int main(void)
 			Branco4 = al_map_rgb(255,229,32);
 		}
 
+		//Muda a cor da area onde esta a opção sair do jogo dependendo se a flag está "levantada" ou não
 		al_set_target_bitmap(area_sair_do_jogo);
 		if (!na_area_sair_do_jogo)
 		{
@@ -276,106 +401,137 @@ int main(void)
 			Branco5 = al_map_rgb(255,229,32);
 		}
 
-// Colorimos o bitmap do botãoo de sair
+		//Dizemos que agora vamos desenhar no bitmap do botão de sair da aplicação
+    // Colorimos o bitmap do botão de sair
 		al_set_target_bitmap(botao_sair);
 		al_clear_to_color(al_map_rgb(255, 0, 0));
 
+		//Dizemos que agora vamos desenhar no bitmap do fundo do menu
+		//Colorimos o bitmap do fundo do menu
 		al_set_target_bitmap(area_menu_fundo);
 		al_clear_to_color(al_map_rgba_f(0, 0, 0, 0.5));
 
-
+		//Dizemos que agora vamos desenhar a partir do fundo da janela
 		al_set_target_bitmap(al_get_backbuffer(janela));
 
-		al_install_mouse();
+		//Esperamos o primeiro evento
+		al_wait_for_event(fila_eventos, &evento);
 
+		//Checamos se o mouse se moveu para cima de alguma das opções do menu
 		if (evento.type == ALLEGRO_EVENT_MOUSE_AXES)
 		{
+			//Se estiver sobre alguma das opções levantamos a devida flag
 			if((400 < evento.mouse.x) && (evento.mouse.x < LARGURA_TELA / 1.7 + 65) && (evento.mouse.y > ALTURA_TELA / 2.21) && (evento.mouse.y < ALTURA_TELA / 2.2 + 72))
-				na_area_jogar = 1;
+				na_area_jogar = 1;//Levatamos a flag que diz que o mouse está sobre a opção jogar
+			//Se não
 			else
-				na_area_jogar = 0;
+				na_area_jogar = 0;//Abaixamos a flag que diz que o mouse está sobre a opção jogar
 
 			if((400 < evento.mouse.x) && (evento.mouse.x < LARGURA_TELA / 1.7 + 65) && (evento.mouse.y > ALTURA_TELA / 1.8) && (evento.mouse.y < ALTURA_TELA / 1.8 + 72))
-				na_area_informacao = 1;
+				na_area_informacao = 1;//Levatamos a flag que diz que o mouse está sobre a opção informação
+			//Se não
 			else
-				na_area_informacao = 0;
+				na_area_informacao = 0;//Abaixamos a flag que diz que o mouse está sobre a opção informação
 
 			if((400 < evento.mouse.x) && (evento.mouse.x < LARGURA_TELA / 1.7 + 65) && (evento.mouse.y > ALTURA_TELA / 1.53 + 1) && (evento.mouse.y < ALTURA_TELA / 1.53 + 72))
-				na_area_ver_recordes = 1;
+				na_area_ver_recordes = 1;//Levatamos a flag que diz que o mouse está sobre a opção ver recordes
+			//Se não
 			else
-				na_area_ver_recordes = 0;
+				na_area_ver_recordes = 0;//Abaixamos a flag que diz que o mouse está sobre a opção ver recordes
 
 			if((400 < evento.mouse.x) && (evento.mouse.x < LARGURA_TELA / 1.7 + 65) && (evento.mouse.y > ALTURA_TELA / 1.33 + 1) && (evento.mouse.y < ALTURA_TELA / 1.33 + 72))
-				na_area_creditos = 1;
+				na_area_creditos = 1;//Levatamos a flag que diz que o mouse está sobre a opção creditos
+			//Se não
 			else
-				na_area_creditos = 0;
+				na_area_creditos = 0;//Abaixamos a flag que diz que o mouse está sobre a opção creditos
 
 			if((400 < evento.mouse.x) && (evento.mouse.x < LARGURA_TELA / 1.7 + 65) && (evento.mouse.y > ALTURA_TELA / 1.17 - 2) && (evento.mouse.y < ALTURA_TELA / 1.17 + 72))
-				na_area_sair_do_jogo = 1;
+				na_area_sair_do_jogo = 1;//Levatamos a flag que diz que o mouse está sobre a opção sair do jogo
+			//Se não
 			else
-				na_area_sair_do_jogo = 0;
+				na_area_sair_do_jogo = 0;//Abaixamos a flag que diz que o mouse está sobre a opção sair do jogo
 		}
-// Ou se o evento foi um clique do mouse
+
+    // Ou se o evento foi um clique do mouse
 		else if (evento.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && menu == 1)
 		{
 			int mousex = evento.mouse.x;
 			int mousey = evento.mouse.y;
 
+			//Verificamos se o clique ocorreu sobre alguma das opções do menu
 			if((350 < mousex) && (mousex < LARGURA_TELA / 1.5) && (mousey > ALTURA_TELA / 1.17 - 2) && (mousey < ALTURA_TELA / 1.17 + 72))
 			{
-				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
+				//Quando sobre o botão Sair do Jogo
+				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);//Tocamos o som de clique
 				return 0;
 			}
-			if((400 < mousex) && (mousex < LARGURA_TELA / 1.7 + 65) && (mousey > ALTURA_TELA / 1.33 + 1) && (mousey < ALTURA_TELA / 1.33 + 72) )
+			else if((400 < mousex) && (mousex < LARGURA_TELA / 1.7 + 65) && (mousey > ALTURA_TELA / 1.33 + 1) && (mousey < ALTURA_TELA / 1.33 + 72) )
 			{
-				menu = 0;
-				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
-				al_clear_to_color(al_map_rgb(255,255,255));
-				credits(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);
-				menu = 1;
+				//Quando sobre a opção Creditos
+				menu = 0;//Mudamos a variável de controle
+				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);//Tocamos o som de clique
+				al_clear_to_color(al_map_rgb(255,255,255));//Limpamos a tela
+				al_destroy_event_queue(fila_eventos);//Destruimos a fila de evntos para que não haja conflito
+				credits(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);//Desenhamos a tela de creditos
+				fila_eventos = al_create_event_queue();//Quando o usuário volta da tela de creditos recriamos a fila de evntos
+				menu = 1;//Mudamos a variável de controle//Mudamos a variável de controle
 			}
-			if((465 < mousex) && (mousex < 815) && (mousey > 400) && (mousey< 472))
+			else if((465 < mousex) && (mousex < 815) && (mousey > 400) && (mousey< 472))
 			{
-				menu = 0;
-				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
-				al_clear_to_color(al_map_rgb(255,255,255));
-				informacao(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);
-				menu = 1;
+				//Quando sobere a opção Informação
+				menu = 0;//Mudamos a variável de controle//Mudamos a variável de controle
+				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);//Tocamos o som de clique
+				al_clear_to_color(al_map_rgb(255,255,255));//Limpamos a tela
+				al_destroy_event_queue(fila_eventos);//Destruimos a fila de evntos para que não haja conflito
+				informacao(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);//Desenhamos a tela de informação
+				fila_eventos = al_create_event_queue();//Quando o usuário volta da tela de informação recriamos a fila de evntos
+				menu = 1;//Mudamos a variável de controle//Mudamos a variável de controle
 			}
-			if((400 < mousex) && (mousex < LARGURA_TELA / 1.7 + 65) && (mousey > ALTURA_TELA / 2.21) && (mousey < ALTURA_TELA / 2.21 + 72 ))
+			else if((400 < mousex) && (mousex < LARGURA_TELA / 1.7 + 65) && (mousey > ALTURA_TELA / 2.21) && (mousey < ALTURA_TELA / 2.21 + 72 ))
 			{
-				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
-				play = choose(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);
-				dificuldade = play;
+				//Quando sobre a opção Jogar
+				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);//Tocamos o som de clique
+				play = choose(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);//Selecionamos a dificuldade atravez da tela de escolha de dificuldade
+				dificuldade = play;//Setamos a dificuldade
 			}
-			if((400 < mousex) && (mousex < LARGURA_TELA / 1.7 + 65) && (mousey > ALTURA_TELA / 1.53 + 1) && (mousey< ALTURA_TELA / 1.53 + 72))
+			else if((400 < mousex) && (mousex < LARGURA_TELA / 1.7 + 65) && (mousey > ALTURA_TELA / 1.53 + 1) && (mousey< ALTURA_TELA / 1.53 + 72))
 			{
-				menu = 0;
-				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
-				al_clear_to_color(al_map_rgb(255,255,255));
-				dificuldade = choose(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);
-				ranking(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);
-				menu = 1;
+				//quando sobre a opção ver ranking
+				menu = 0;//Mudamos a variável de controle
+				al_play_sample(clique_jogo, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);//Tocamos o som de clique
+				al_clear_to_color(al_map_rgb(255,255,255));//Limpamos a tela
+				al_destroy_event_queue(fila_eventos);//Destruimos a fila de evntos para que não haja conflito
+				dificuldade = choose(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);//Selecionamos a dificuldade atravez da tela de escolha de dificuldade
+				fila_eventos = al_create_event_queue();//Quando o usuário volta da tela de escolha de dificuldade recriamos a fila de evntos
+				//Se o usuário não clicou no botão voltar
+				if (dificuldade > 0)
+				{
+					al_destroy_event_queue(fila_eventos);//Destruimos a fila de evntos para que não haja conflito
+					ranking(LARGURA_TELA, ALTURA_TELA, janela, backgr, bomba);//Desenhamos a tela do ranking
+					fila_eventos = al_create_event_queue();//Quando o usuário volta da tela de ranking recriamos a fila de evntos
+				}
+				menu = 1;//Mudamos a variável de controle
 			}
 		}
 
-		if(play != 0)
+		//se o usuário escolheu a opção jogar e uma dificuldade
+		if(play > 0)
 		{
 			jogar(backgr, bomba);
-			play = 0;
-			menu = 1;
+			play = 0;//Mudamos a variável de controle
+			menu = 1;//Mudamos a variável de controle
 		}
 
 	}
 
-// Desaloca os recursos utilizados na aplicação
-	al_destroy_bitmap(botao_sair);
-	al_destroy_event_queue(fila_eventos);
-	al_destroy_font(font1);
-	al_destroy_font(font2);
-	al_destroy_bitmap(backgr);
-	al_destroy_bitmap(bomba);
-	al_destroy_display(janela);
+  // Desaloca os recursos utilizados na aplicação
+	al_destroy_bitmap(botao_sair);//Bitmap do botão sair
+	al_destroy_event_queue(fila_eventos);//Fila de evntos
+	al_destroy_font(font1);//Arquivo de fonte
+	al_destroy_font(font2);//Arquivo de fonte
+	al_destroy_bitmap(backgr);//Imagem de fundo
+	al_destroy_bitmap(bomba);//Imagem de fundo
+	al_destroy_display(janela);//a janela em si
 
 	return 0;
 }
