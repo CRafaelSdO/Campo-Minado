@@ -3,14 +3,12 @@
 Jogo campo minado implementado na linguagem C usando a biblioteca grafica Allegro 5
 
 * Para executar o jogo, apenas é necessario abrir o arquivo executavel  (Campo-Minado.exe no Windows e Campo_Minado.o no Linux).
-* Para compila-lo é necessario a instalação da biblioteca allegro, [clique aqui](https://sites.google.com/a/liesenberg.biz/cjogos/home/software/ambiente-code-blocks-allegro-5 "Allegro com Code:Blocks") para um tutorial de instalação do allegro com code blocks.
-* Caso opte por compilar: 
- 1. No Linux use o seguinte comando (depois faça o passo anterior):
+* Para compilá-lo é necessario a instalação da biblioteca allegro, [clique aqui](https://sites.google.com/a/liesenberg.biz/cjogos/home/software/ambiente-code-blocks-allegro-5 "Allegro com Code:Blocks") para um tutorial de instalação do allegro com code blocks.
+* Caso opte por compilar no terminal do Linux, instale o Allegro5 do tutorial e: 
+ 1. Use o seguinte comando (depois faça o passo anterior):
    * ``gcc Campo_Minado.c -o Campo_Minado -lallegro -lallegro_dialog -lallegro_ttf -lallegro_font -lallegro_primitives -lallegro_image -lallegro_audio -lallegro_acodec``
- 2. No Windowns adicione os seguintes parâmetros para compilação (depois faça o passo anterior):
-   * ``-lallegro -lallegro_dialog -lallegro_ttf -lallegro_font -lallegro_primitives -lallegro_image -lallegro_audio -lallegro_acodec``
 * [Veja o video da Gameplay] (https://youtu.be/6lzJ9R5j8Xw "Gameplay video")
-* Caso o jogo nao esteja igual ao do video, provavelmente é um problema de incompatibilidade com o S.O., se possivel executar o jogo no windows.
+* Caso o jogo nao esteja igual ao do video, provavelmente é um problema de incompatibilidade com o S.O., se possivel executar o jogo no Windows.
 
 
 
