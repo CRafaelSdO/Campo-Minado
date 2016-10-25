@@ -16,10 +16,11 @@ Jogo campo minado implementado na linguagem C usando a biblioteca grafica Allegr
 #### Professor: Baldoino Neto
 
 ##### Grupo:
-1. Lucas Ribeiro
-2. Nelson Gomes
-3. Cicero Rafael
-4. Thiago Torres
+
+* Cicero Rafael
+* Lucas Ribeiro
+* Nelson Gomes
+* Thiago Torres
 
 
 ## Sobre o jogo
